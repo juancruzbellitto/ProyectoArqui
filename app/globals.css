@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Paleta ComplejoSport */
+  --cs-header: #3B4F38;
+  --cs-accent: #ACC2AB;
+  --cs-fondo: #D7E6D3;
+  --cs-card: #7FB584;
+  --cs-dark: #061F03;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @theme inline {
