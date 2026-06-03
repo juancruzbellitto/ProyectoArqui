@@ -1,9 +1,10 @@
 @AGENTS.md
 
-# Sistema de Reserva de Turnos de Canchas
+# ComplejoSport — Sistema de Reserva de Turnos de Canchas
 
 **Materia:** Arquitectura y Diseño de Sistemas 2026 — Comisión 5  
-**Integrantes:** Monardez, Sagasti, Bloga, Uzeltinger, Bellitto, Julián
+**Integrantes:** Monardez, Sagasti, Bloga, Uzeltinger, Bellitto, Julián  
+**Slogan:** "Reservá tu cancha, jugá sin complicaciones"
 
 Plataforma web que permite a usuarios clientes reservar canchas deportivas en complejos, gestionar equipamiento y pagos. Administradores y auxiliares gestionan complejos, canchas, inventario y estadísticas.
 
@@ -43,14 +44,24 @@ Plataforma web que permite a usuarios clientes reservar canchas deportivas en co
 
 ```
 ProyectoArqui/
-├── app/                        # Next.js App Router (frontend + API routes)
-│   ├── generated/prisma/       # Cliente Prisma generado (no editar)
-│   ├── globals.css
-│   ├── layout.tsx              # Layout raíz
-│   └── page.tsx                # Página principal
+├── app/                        # Next.js App Router (páginas y API routes)
+│   ├── globals.css             # Tailwind v4 + variables CSS de paleta
+│   ├── layout.tsx              # Layout raíz (lang=es, fuentes Geist)
+│   └── page.tsx                # Landing page (Home)
+├── src/
+│   ├── components/             # Componentes reutilizables de UI
+│   │   ├── Navbar.tsx          # 'use client' — sticky, hamburguesa mobile
+│   │   ├── Hero.tsx            # 'use client' — barra de búsqueda
+│   │   ├── Features.tsx        # Server Component
+│   │   ├── ComplejoCard.tsx    # Server Component
+│   │   ├── CanchaCard.tsx      # 'use client' — botón reservar con TODO auth
+│   │   ├── HowItWorks.tsx      # Server Component
+│   │   └── Footer.tsx          # Server Component
+│   └── mocks/
+│       └── data.ts             # Datos mockeados (reemplazar con queries Prisma al tener DB)
 ├── backend/                    # Servidor Express independiente
 │   ├── app/prisma/prisma.ts    # Instancia Prisma del backend
-│   ├── prisma/schema.prisma    # Schema Prisma (fuente de verdad del modelo)
+│   ├── prisma/schema.prisma    # Schema Prisma (fuente de verdad del modelo — aún vacío)
 │   ├── app.js
 │   └── server.js
 ├── docs/
@@ -64,9 +75,53 @@ ProyectoArqui/
 ├── public/                     # Assets estáticos
 ├── prisma.config.ts
 ├── next.config.ts
-├── tsconfig.json
-└── package.json                # pnpm workspace root
+├── tsconfig.json               # paths: "@/*" → "./*"
+└── package.json
 ```
+
+---
+
+## Ruteo de la Aplicación
+
+Decisión tomada: las canchas son recursos anidados dentro de complejos. La reserva vive en el contexto de cancha → complejo.
+
+```
+/                                                   → Landing (hecha)
+/login                                              → Inicio de sesión
+/registro                                           → Registro
+
+/complejos                                          → Lista y búsqueda de complejos
+/complejos/[complejo_id]                            → Detalle del complejo + sus canchas
+/complejos/[complejo_id]/canchas/[cancha_id]        → Detalle de cancha (horarios, reseñas)
+/complejos/[complejo_id]/canchas/[cancha_id]/reservar  → Formulario de reserva (auth requerida)
+
+/reservas                                           → Mis reservas (auth requerida)
+/reservas/[reserva_id]                              → Detalle / comprobante de reserva
+
+/dashboard                                          → Panel admin / auxiliar (auth requerida)
+/dashboard/complejos                                → Gestión de complejos
+/dashboard/complejos/[complejo_id]                  → Gestión de canchas e inventario
+```
+
+---
+
+## Base de Datos — Pendientes antes de la primera migración
+
+La DB está hosteada en **Neon PostgreSQL** (Vercel). La connection string está en `.env` y `.env.local`. Hay cuatro cosas a resolver antes de correr `prisma migrate dev`:
+
+1. **Escribir los modelos en `backend/prisma/schema.prisma`** — actualmente vacío.
+2. **Agregar `directUrl`** — Neon usa PgBouncer; sin `directUrl` apuntando a la URL sin pooling, las migraciones fallan por advisory locks:
+   ```prisma
+   datasource db {
+     provider  = "postgresql"
+     url       = env("DATABASE_URL")
+     directUrl = env("DATABASE_URL_UNPOOLED")
+   }
+   ```
+3. **Copiar `DATABASE_URL_UNPOOLED` al `.env`** — actualmente solo está en `.env.local` (que lee Next.js, no Prisma CLI).
+4. **Corregir el path en `prisma.config.ts`** — apunta a `prisma/schema.prisma` pero el archivo está en `backend/prisma/schema.prisma`.
+
+Una vez resueltos: `pnpm exec prisma migrate dev` crea las tablas. Reemplazar el import de `src/mocks/data.ts` en `app/page.tsx` con queries de Prisma, y borrar el archivo de mocks.
 
 ---
 
