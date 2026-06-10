@@ -1,8 +1,8 @@
 'use client';
 
-// Card de una cancha con estado de disponibilidad y botón de reserva
-// TODO: integrar con el sistema de auth cuando esté implementado
 import { Clock, Activity, MapPin } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import type { Cancha } from '@/src/mocks/data';
 
 interface Props {
@@ -10,11 +10,16 @@ interface Props {
 }
 
 export default function CanchaCard({ cancha }: Props) {
+  const { isSignedIn } = useAuth();
+  const router = useRouter();
+
   const handleReservar = () => {
-    // TODO: verificar sesión activa
-    //   - Si hay sesión: router.push(`/reservas/${cancha.id}`)
-    //   - Si no hay sesión: router.push('/login')
-    window.location.href = '/login';
+    if (!cancha.disponible) return;
+    if (isSignedIn) {
+      router.push(`/complejos/${cancha.complejoId}/canchas/${cancha.id}/reservar`);
+    } else {
+      router.push('/sign-in');
+    }
   };
 
   return (

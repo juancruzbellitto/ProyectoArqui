@@ -1,9 +1,9 @@
 'use client';
 
-// Navbar fijo con sombra al hacer scroll y menú hamburguesa en mobile
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X, Trophy, User } from 'lucide-react';
+import { Menu, X, Trophy } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 
 const LINKS = [
   { href: '/', label: 'Inicio' },
@@ -50,15 +50,30 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Botón login desktop */}
-          <div className="hidden md:block">
-            <Link
-              href="/login"
-              className="flex items-center gap-2 bg-[#ACC2AB] text-[#061F03] px-4 py-2 rounded-full text-sm font-semibold hover:bg-white transition-colors duration-200"
-            >
-              <User className="w-4 h-4" />
-              Iniciar sesión
-            </Link>
+          {/* Auth desktop */}
+          <div className="hidden md:flex items-center gap-3">
+            <SignedOut>
+              <SignInButton mode="redirect">
+                <button className="flex items-center gap-2 bg-[#ACC2AB] text-[#061F03] px-4 py-2 rounded-full text-sm font-semibold hover:bg-white transition-colors duration-200">
+                  Iniciar sesión
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link
+                href="/reservas"
+                className="text-sm font-medium text-[#ACC2AB] hover:text-white transition-colors duration-200"
+              >
+                Mis reservas
+              </Link>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: 'w-9 h-9',
+                  },
+                }}
+              />
+            </SignedIn>
           </div>
 
           {/* Botón hamburguesa mobile */}
@@ -85,14 +100,29 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            onClick={() => setMenuAbierto(false)}
-            className="flex items-center gap-2 bg-[#ACC2AB] text-[#061F03] px-4 py-2 rounded-full text-sm font-semibold w-fit"
-          >
-            <User className="w-4 h-4" />
-            Iniciar sesión
-          </Link>
+          <SignedOut>
+            <SignInButton mode="redirect">
+              <button className="flex items-center gap-2 bg-[#ACC2AB] text-[#061F03] px-4 py-2 rounded-full text-sm font-semibold w-fit">
+                Iniciar sesión
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/reservas"
+              onClick={() => setMenuAbierto(false)}
+              className="text-[#ACC2AB] hover:text-white transition-colors text-sm font-medium"
+            >
+              Mis reservas
+            </Link>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: 'w-9 h-9',
+                },
+              }}
+            />
+          </SignedIn>
         </div>
       )}
     </nav>
