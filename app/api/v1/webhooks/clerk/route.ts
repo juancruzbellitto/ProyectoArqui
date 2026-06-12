@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { Webhook } from 'svix';
+import { clerkClient } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -11,6 +12,10 @@ type ClerkUserEvent = {
     primary_email_address_id: string;
     first_name: string | null;
     last_name: string | null;
+    public_metadata: {
+      rol?: string | string[];
+      id_complejo?: number;
+    };
   };
 };
 
@@ -84,6 +89,11 @@ export async function POST(req: Request) {
         },
       });
 
+      const clerk = await clerkClient();
+      await clerk.users.updateUserMetadata(data.id, {
+        publicMetadata: { rol: ['cliente'] },
+      });
+
       console.log('[webhook/clerk] Usuario creado:', email);
     }
 
@@ -91,10 +101,56 @@ export async function POST(req: Request) {
       const nombre =
         [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
 
-      if (nombre) {
-        await prisma.usuario.updateMany({
-          where: { clerk_user_id: data.id },
-          data: { nombre },
+      const rolRaw = data.public_metadata?.rol;
+      const nuevoRol = Array.isArray(rolRaw) ? rolRaw[0] : rolRaw;
+
+      const usuarioActual = await prisma.usuario.findFirst({
+        where: { clerk_user_id: data.id },
+        select: { email: true, rol: true },
+      });
+
+      if (!usuarioActual) {
+        console.warn('[webhook/clerk] user.updated: usuario no encontrado en DB:', data.id);
+      } else {
+        const rolCambio = nuevoRol && nuevoRol !== usuarioActual.rol;
+
+        await prisma.$transaction(async (tx) => {
+          if (nombre) {
+            await tx.usuario.update({
+              where: { email: usuarioActual.email },
+              data: { nombre },
+            });
+          }
+
+          if (rolCambio) {
+            // Eliminar fila de la tabla CTI anterior
+            if (usuarioActual.rol === 'cliente') {
+              await tx.cliente.delete({ where: { email: usuarioActual.email } });
+            } else if (usuarioActual.rol === 'auxiliar') {
+              await tx.auxiliar.delete({ where: { email: usuarioActual.email } });
+            }
+
+            // Actualizar rol en Usuario
+            await tx.usuario.update({
+              where: { email: usuarioActual.email },
+              data: { rol: nuevoRol as 'admin' | 'auxiliar' | 'cliente' },
+            });
+
+            // Crear fila en la nueva tabla CTI
+            if (nuevoRol === 'cliente') {
+              await tx.cliente.create({
+                data: { email: usuarioActual.email, buscando: false },
+              });
+            } else if (nuevoRol === 'auxiliar') {
+              const idComplejo = data.public_metadata?.id_complejo;
+              if (!idComplejo) throw new Error('id_complejo requerido en metadata para rol auxiliar');
+              await tx.auxiliar.create({
+                data: { email: usuarioActual.email, id_complejo: idComplejo },
+              });
+            }
+
+            console.log(`[webhook/clerk] Rol cambiado: ${usuarioActual.email} → ${nuevoRol}`);
+          }
         });
       }
     }

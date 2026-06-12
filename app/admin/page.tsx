@@ -17,9 +17,9 @@ export default async function PaginaDashboard() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <TarjetaDashboard titulo="Complejos" descripcion="Gestioná tus complejos deportivos" href="/dashboard/complejos" />
-            <TarjetaDashboard titulo="Canchas" descripcion="Administrá el estado de las canchas" href="/dashboard/complejos" />
-            <TarjetaDashboard titulo="Inventario" descripcion="Controlá el equipamiento disponible" href="/dashboard/complejos" />
+            <TarjetaDashboard titulo="Complejos" descripcion="Gestioná tus complejos deportivos" href="/admin/complejos" />
+            <TarjetaDashboard titulo="Canchas" descripcion="Administrá el estado de las canchas" href="/admin/complejos" />
+            <TarjetaDashboard titulo="Inventario" descripcion="Controlá el equipamiento disponible" href="/admin/complejos" />
           </div>
 
           {/* Placeholder — reemplazar con query a Prisma validando rol */}

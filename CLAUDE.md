@@ -12,15 +12,19 @@ Plataforma web que permite a usuarios clientes reservar canchas deportivas en co
 
 ## Entregables
 
-| # | Fecha | Contenido |
-|---|-------|-----------|
-| 1 | 6 abr | Modelo de dominio, glosario, RF-01–RF-28, RNF-01–RNF-15, DER |
-| 2 | 27 abr | Diagrama de contexto, contenedores y componentes (C4) |
-| 3 | 18 may | Modelo de datos relacional y diccionario de datos |
+| # | Fecha | Contenido | Estado |
+|---|-------|-----------|--------|
+| 1 | 6 abr | Modelo de dominio, glosario, RF-01–RF-28, RNF-01–RNF-15, DER | ✓ Entregado |
+| 2 | 27 abr | Diagrama de contexto, contenedores y componentes (C4) | ✓ Entregado |
+| 3 | 18 may | Modelo de datos relacional y diccionario de datos | ✓ Entregado |
+| 4 | 8 jun | Diseño de APIs (OpenAPI/Swagger) + Pipelines de datos + ADRs (5) | ✓ Entregado |
 
-**Pendientes:**
-- **8 jun** — Diseño de APIs + Descripción del Pipeline de Datos + ADRs (decisiones arquitectónicas)
-- **22 jun** — Estrategia de Despliegue (opcional)
+**Presentación Final:**
+- 30 minutos totales: intro (5min) + arquitectura (5min) + demo video (5-8min) + conclusiones (5min) + preguntas (10min)
+- Demo debe ser **video pregrabado embebido** en la presentación (no demo en vivo)
+- Presentación a entregar 48 hs antes del día de exposición
+- Nota sobre 10 pts: Demo funcional (3) + Coherencia arquitectura (3) + Calidad presentación (1.5) + Profundidad técnica (1.5) + Participación (1)
+- Slides obligatorios: carátula, descripción del sistema, 2-3 ADRs clave, modelo de datos, APIs (endpoints + request/response), demo, desafíos y aprendizajes
 
 ---
 
@@ -65,12 +69,22 @@ ProyectoArqui/
 │   ├── app.js
 │   └── server.js
 ├── docs/
-│   ├── CU/                     # Casos de uso CU-01 a CU-26 (.docx)
-│   ├── Diccionario de Datos (1).docx / Diccionario de Datos.pdf
-│   ├── Diagrama de componentes - entregable 2.pdf
-│   ├── Diagrama entidad-relacion entregable 1.png
-│   ├── Documentacion-proyecto - entregable 1.pdf
-│   ├── Modelo de Datos-5.pdf
+│   ├── Entregable 1/
+│   │   ├── CU/                 # Casos de uso CU-01 a CU-26 (.docx)
+│   │   ├── Diagrama_entidad-relacion.pdf
+│   │   └── Documentacion_proyecto.pdf   # Glosario, RF-01–RF-28, RNF-01–RNF-15
+│   ├── Entregable 2/
+│   │   ├── Diagrama_de_contexto.pdf
+│   │   ├── Diagrama_de_contenedores.pdf
+│   │   └── Diagrama_de_componentes.pdf
+│   ├── Entregable 3/
+│   │   ├── Modelo_de_datos.pdf
+│   │   └── Diccionario_de_datos.pdf
+│   ├── Entregable 4/
+│   │   ├── ADRs/               # ADR-001 a ADR-005 (.pdf)
+│   │   ├── PIPES/              # 6 pipelines (.pdf)
+│   │   └── API.yaml            # Diseño OpenAPI/Swagger
+│   ├── Lineamientos_presentacion_final.pdf
 │   └── Proyecto 2026.pdf       # Lineamientos y criterios de evaluación
 ├── public/                     # Assets estáticos
 ├── prisma.config.ts
@@ -131,12 +145,22 @@ La DB está hosteada en **Neon PostgreSQL** (Vercel). Las tablas ya están cread
 | Archivo | Contenido |
 |---------|-----------|
 | `docs/Proyecto 2026.pdf` | Lineamientos de la materia, requerimientos arquitectónicos obligatorios, criterios de evaluación |
-| `docs/Documentacion-proyecto - entregable 1.pdf` | Glosario del dominio, RF-01–RF-28, RNF-01–RNF-15 |
-| `docs/Diagrama de componentes - entregable 2.pdf` | Arquitectura C4: Login API, Estadísticas API, Turnos API, Pagos API |
-| `docs/Modelo de Datos-5.pdf` | Modelo relacional con todas las tablas |
-| `docs/Diccionario de Datos.docx/.pdf` | Descripción de tablas, tipos, reglas de negocio |
-| `docs/Diagrama entidad-relacion entregable 1.png` | DER con entidades del dominio |
-| **Casos de uso** | |
+| `docs/Lineamientos_presentacion_final.pdf` | Formato, duración, criterios y checklist de la presentación final |
+| `docs/Entregable 1/Documentacion_proyecto.pdf` | Glosario del dominio, RF-01–RF-28, RNF-01–RNF-15 |
+| `docs/Entregable 1/Diagrama_entidad-relacion.pdf` | DER con entidades del dominio |
+| `docs/Entregable 2/Diagrama_de_contexto.pdf` | Interacciones del sistema con usuarios y sistemas externos |
+| `docs/Entregable 2/Diagrama_de_contenedores.pdf` | Arquitectura distribuida: frontend, backend, DB |
+| `docs/Entregable 2/Diagrama_de_componentes.pdf` | Componentes internos: Login API, Estadísticas API, Turnos API, Pagos API |
+| `docs/Entregable 3/Modelo_de_datos.pdf` | Modelo relacional con todas las tablas |
+| `docs/Entregable 3/Diccionario_de_datos.pdf` | Descripción de tablas, tipos, reglas de negocio |
+| `docs/Entregable 4/ADRs/ADR-001.pdf` | Monolito modular como estrategia de organización del backend |
+| `docs/Entregable 4/ADRs/ADR-002.pdf` | PostgreSQL como estrategia de persistencia |
+| `docs/Entregable 4/ADRs/ADR-003.pdf` | API REST sobre HTTP con JSON como comunicación entre componentes |
+| `docs/Entregable 4/ADRs/ADR-004.pdf` | Plataforma cloud administrada (Vercel) como estrategia de despliegue |
+| `docs/Entregable 4/ADRs/ADR-005.pdf` | Mercado Pago como estrategia de procesamiento de pagos electrónicos |
+| `docs/Entregable 4/API.yaml` | Diseño completo de la API REST (OpenAPI/Swagger) |
+| `docs/Entregable 4/PIPES/` | Pipelines: Reservas, Pagos, Notificaciones, Inasistencias, Estadísticas, Búsqueda Equipo |
+| **Casos de uso** (`docs/Entregable 1/CU/`) | |
 | `CU-01` | Crear cuenta (usuario cliente) |
 | `CU-02` | Iniciar sesión |
 | `CU-03` | Cerrar sesión |
@@ -234,6 +258,33 @@ Patrón de herencia: **Class Table Inheritance** (garantiza 3FN).
 - **Calificaciones:** el campo `calificacion` en Reseña acepta solo valores entre 1 y 5.
 - **Un administrador puede gestionar múltiples complejos.**
 - **Un auxiliar pertenece a un único complejo** (`id_complejo` NOT NULL).
+
+---
+
+## Decisiones Arquitectónicas (ADRs)
+
+| ID | Título | Decisión tomada |
+|----|--------|----------------|
+| ADR-001 | Organización del backend | **Monolito modular** — lógica organizada por dominios funcionales (usuarios, reservas, canchas, pagos, equipamiento). Descartados: monolito sin modularizar (acoplamiento) y microservicios (complejidad innecesaria para el equipo). |
+| ADR-002 | Persistencia de datos | **PostgreSQL** único — dominio fuertemente relacional, transacciones ACID para reservas, integración nativa con Prisma. Descartados: MongoDB (relaciones complejas) y MySQL (menor integración). |
+| ADR-003 | Comunicación entre componentes | **API REST sobre HTTP + JSON** — simplicidad, compatibilidad web estándar, fácil documentación. Descartados: GraphQL (mayor complejidad) y eventos (infraestructura adicional). |
+| ADR-004 | Despliegue y alojamiento | **Plataforma cloud administrada (Vercel + Neon)** — despliegue rápido, acceso remoto permanente, mínima carga operativa. Descartadas: infraestructura propia (carga administrativa) y VPS (configuración continua). |
+| ADR-005 | Procesamiento de pagos | **Mercado Pago** — plataforma ampliamente usada en Argentina, evita almacenar datos financieros sensibles, APIs maduras. Descartados: procesamiento propio (riesgos de seguridad) e integración múltiple (complejidad). |
+
+---
+
+## Pipelines de Datos (Entregable 4)
+
+Seis pipelines documentados en `docs/Entregable 4/PIPES/`:
+
+| Pipeline | Descripción |
+|----------|-------------|
+| PP - Reservas | Flujo de creación, validación y confirmación de reservas |
+| PP - Pagos | Flujo de pago vía Mercado Pago, webhook de confirmación |
+| PP - Gestión de Notificaciones | Envío de emails ante confirmación/cancelación/búsqueda de equipo |
+| PP - Inasistencias y Penalización | Registro de inasistencias y aplicación de penalizaciones al cliente |
+| PP - Generacion Estadísticas | Agregación de datos de reservas para estadísticas del complejo |
+| PP - Busqueda Equipo | Flujo de publicación y unión a partidos abiertos |
 
 ---
 

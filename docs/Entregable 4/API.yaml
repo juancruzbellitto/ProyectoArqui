@@ -10,7 +10,7 @@ paths:
 
   # --------- MÓDULO: USUARIOS -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-  /usuarios:
+  /usuarios:                                            # Endpoint para sincronizar un nuevo usuario o registrar el perfil local del usuario una vez se autentica con Clerk
     post:
       summary: Sincronizar un nuevo usuario (Webhook de Clerk o registro inicial)
       tags: [Usuarios]
@@ -59,8 +59,8 @@ paths:
               schema:
                 $ref '#/components/schemas/Error'
 
-  /usuarios/{email}:
-    get:
+  /usuarios/{email}:                                    # Endpoints para consultar o modificar datos del perfil de un usuario específico
+    get:                                                # Endpoint para consultar datos del perfil de un usuario específico
       summary: Consultar datos del perfil del usuario
       tags: [Usuarios]
       security:
@@ -115,7 +115,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    patch:
+
+    patch:                                              # Endpoint para modificar datos de contacto del perfil de un usuario específico
       summary: Modificar datos de contacto del perfil
       tags: [Usuarios]
       security:
