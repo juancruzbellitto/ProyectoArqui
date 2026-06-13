@@ -6,8 +6,10 @@ import { useParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import Navbar from '@/src/components/Navbar'
 import Footer from '@/src/components/Footer'
+import Estrellas from '@/src/components/Estrellas'
 import {
   ChevronLeft, MapPin, Clock, Dumbbell, X, CheckCircle2, Calendar, ChevronRight,
+  Star, Trash2, MessageSquare,
 } from 'lucide-react'
 
 type Complejo = {
@@ -80,6 +82,7 @@ export default function PaginaDetalleComplejo() {
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [canchaParaReservar, setCanchaParaReservar] = useState<Cancha | null>(null)
+  const [canchaResenas, setCanchaResenas] = useState<Cancha | null>(null)
 
   const cargarDatos = useCallback(async () => {
     if (isNaN(idComplejo)) return
@@ -167,6 +170,7 @@ export default function PaginaDetalleComplejo() {
                         cancha={cancha}
                         puedeReservar={isLoaded && rol === 'cliente' && cancha.estadoOperativo === 'disponible'}
                         onReservar={() => setCanchaParaReservar(cancha)}
+                        onVerResenas={() => setCanchaResenas(cancha)}
                       />
                     ))}
                   </div>
@@ -186,6 +190,14 @@ export default function PaginaDetalleComplejo() {
         />
       )}
 
+      {canchaResenas && (
+        <ModalResenas
+          cancha={canchaResenas}
+          emailUsuario={isLoaded && rol === 'cliente' ? (user?.primaryEmailAddress?.emailAddress ?? null) : null}
+          onCerrar={() => setCanchaResenas(null)}
+        />
+      )}
+
       <Footer />
     </>
   )
@@ -195,10 +207,12 @@ function TarjetaCancha({
   cancha,
   puedeReservar,
   onReservar,
+  onVerResenas,
 }: {
   cancha: Cancha
   puedeReservar: boolean
   onReservar: () => void
+  onVerResenas: () => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-[#ACC2AB]/30 p-5 flex flex-col gap-3">
@@ -223,14 +237,24 @@ function TarjetaCancha({
 
       <p className="text-xs text-[#3B4F38]/60 ml-5">Turnos de {cancha.duracionTurno} min</p>
 
-      {puedeReservar && (
+      <div className="flex gap-2 mt-1">
         <button
-          onClick={onReservar}
-          className="mt-1 w-full bg-[#3B4F38] text-white rounded-xl py-2 text-sm font-medium hover:bg-[#061F03] transition-colors"
+          onClick={onVerResenas}
+          className="flex-1 flex items-center justify-center gap-1.5 text-sm text-[#3B4F38] border border-[#ACC2AB]/50 rounded-xl py-2 hover:bg-[#F4F8F3] transition-colors"
         >
-          Reservar
+          <Star className="w-3.5 h-3.5 text-[#F59E0B]" />
+          Reseñas
         </button>
-      )}
+
+        {puedeReservar && (
+          <button
+            onClick={onReservar}
+            className="flex-1 bg-[#3B4F38] text-white rounded-xl py-2 text-sm font-medium hover:bg-[#061F03] transition-colors"
+          >
+            Reservar
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -605,6 +629,272 @@ function ModalReserva({
                 ← Volver
               </button>
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type Resena = {
+  idResena: number
+  comentario: string
+  calificacion: number
+  emailCliente: string
+  idCancha: number
+}
+
+function ocultarEmail(email: string): string {
+  const [user, domain] = email.split('@')
+  if (!domain) return email
+  return `${user.slice(0, 2)}***@${domain}`
+}
+
+function ModalResenas({
+  cancha,
+  emailUsuario,
+  onCerrar,
+}: {
+  cancha: Cancha
+  emailUsuario: string | null
+  onCerrar: () => void
+}) {
+  const [resenas, setResenas] = useState<Resena[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [calificacion, setCalificacion] = useState(0)
+  const [comentario, setComentario] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
+
+  const [confirmEliminar, setConfirmEliminar] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+
+  const cargar = useCallback(async () => {
+    setCargando(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/v1/canchas/${cancha.idCancha}/resenas`)
+      if (!res.ok) throw new Error('Error al cargar las reseñas')
+      setResenas(await res.json() as Resena[])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setCargando(false)
+    }
+  }, [cancha.idCancha])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargar()
+  }, [cargar])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onCerrar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCerrar])
+
+  const miResena = emailUsuario ? resenas.find((r) => r.emailCliente === emailUsuario) : undefined
+  const otras = emailUsuario ? resenas.filter((r) => r.emailCliente !== emailUsuario) : resenas
+
+  const promedio = resenas.length > 0
+    ? Math.round((resenas.reduce((s, r) => s + r.calificacion, 0) / resenas.length) * 10) / 10
+    : null
+
+  async function publicar() {
+    if (calificacion === 0) { setErrorEnvio('Elegí una calificación'); return }
+    if (!comentario.trim()) { setErrorEnvio('Escribí un comentario'); return }
+    setEnviando(true)
+    setErrorEnvio(null)
+    try {
+      const res = await fetch(`/api/v1/canchas/${cancha.idCancha}/resenas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calificacion, comentario: comentario.trim() }),
+      })
+      if (res.status === 201) {
+        setCalificacion(0)
+        setComentario('')
+        cargar()
+        return
+      }
+      if (res.status === 409) {
+        cargar()
+        return
+      }
+      const json = await res.json().catch(() => ({}))
+      throw new Error((json as { error?: { message?: string } })?.error?.message ?? 'Error al publicar')
+    } catch (e) {
+      setErrorEnvio(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  async function eliminar() {
+    if (!miResena) return
+    setEliminando(true)
+    try {
+      const res = await fetch(`/api/v1/resenas/${miResena.idResena}`, { method: 'DELETE' })
+      if (res.status === 204) {
+        setConfirmEliminar(false)
+        cargar()
+      }
+    } catch {
+      // silencioso — el usuario puede reintentar
+    } finally {
+      setEliminando(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCerrar() }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-[#ACC2AB]/20">
+          <div>
+            <h2 className="font-bold text-[#061F03]">Reseñas — {cancha.nombre}</h2>
+            {promedio !== null && (
+              <div className="flex items-center gap-2 mt-1">
+                <Estrellas modo="lectura" valor={promedio} size="sm" />
+                <span className="text-sm text-[#3B4F38]">
+                  {promedio.toFixed(1)} ({resenas.length} reseña{resenas.length !== 1 ? 's' : ''})
+                </span>
+              </div>
+            )}
+          </div>
+          <button onClick={onCerrar} className="text-[#3B4F38]/60 hover:text-[#061F03] p-1 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 flex flex-col gap-6">
+          {cargando && (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin w-7 h-7 border-4 border-[#ACC2AB] border-t-[#3B4F38] rounded-full" />
+            </div>
+          )}
+
+          {!cargando && error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm flex items-center gap-3">
+              <span>{error}</span>
+              <button onClick={cargar} className="underline shrink-0">Reintentar</button>
+            </div>
+          )}
+
+          {!cargando && !error && (
+            <>
+              {/* Mi reseña */}
+              {miResena && (
+                <div>
+                  <h3 className="text-xs font-semibold text-[#3B4F38]/70 uppercase tracking-wide mb-2">Tu reseña</h3>
+                  <div className="bg-[#F4F8F3] rounded-xl p-4 border-2 border-[#3B4F38]/20 flex flex-col gap-2">
+                    <Estrellas modo="lectura" valor={miResena.calificacion} size="sm" />
+                    <p className="text-sm text-[#061F03]">{miResena.comentario}</p>
+                    {!confirmEliminar ? (
+                      <button
+                        onClick={() => setConfirmEliminar(true)}
+                        className="self-start flex items-center gap-1 text-xs text-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 hover:bg-red-50 transition-colors mt-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Eliminar
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-xs text-[#3B4F38]">¿Confirmás?</span>
+                        <button
+                          onClick={eliminar}
+                          disabled={eliminando}
+                          className="text-xs bg-red-600 text-white rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
+                        >
+                          {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmEliminar(false)}
+                          className="text-xs text-[#3B4F38] border border-[#ACC2AB]/50 rounded-lg px-3 py-1.5 hover:bg-[#F4F8F3] transition-colors"
+                        >
+                          No
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Formulario (solo si es cliente y no tiene reseña) */}
+              {emailUsuario && !miResena && (
+                <div>
+                  <h3 className="text-xs font-semibold text-[#3B4F38]/70 uppercase tracking-wide mb-3">
+                    Dejar una reseña
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-[#3B4F38]/70 uppercase tracking-wide">Calificación</label>
+                      <Estrellas modo="interactivo" valor={calificacion} onChange={setCalificacion} size="lg" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-[#3B4F38]/70 uppercase tracking-wide">Comentario</label>
+                      <textarea
+                        value={comentario}
+                        onChange={(e) => setComentario(e.target.value)}
+                        rows={3}
+                        maxLength={1000}
+                        placeholder="Contá tu experiencia..."
+                        className="w-full px-4 py-3 rounded-xl border border-[#ACC2AB]/50 text-sm text-[#061F03] focus:outline-none focus:ring-2 focus:ring-[#ACC2AB] resize-none placeholder:text-[#3B4F38]/40"
+                      />
+                      <p className="text-xs text-[#3B4F38]/50 text-right">{comentario.length}/1000</p>
+                    </div>
+                    {errorEnvio && (
+                      <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{errorEnvio}</p>
+                    )}
+                    <button
+                      onClick={publicar}
+                      disabled={enviando}
+                      className="w-full bg-[#3B4F38] text-white rounded-xl py-2.5 text-sm font-medium hover:bg-[#061F03] transition-colors disabled:opacity-50"
+                    >
+                      {enviando ? 'Publicando...' : 'Publicar reseña'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Reseñas de otros */}
+              <div>
+                <h3 className="text-xs font-semibold text-[#3B4F38]/70 uppercase tracking-wide mb-3">
+                  {otras.length > 0
+                    ? `${otras.length} reseña${otras.length !== 1 ? 's' : ''}`
+                    : 'Reseñas'}
+                </h3>
+                {otras.length === 0 && !miResena && (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-10 h-10 text-[#ACC2AB] mx-auto mb-2" />
+                    <p className="text-sm text-[#3B4F38]/60">
+                      Esta cancha todavía no tiene reseñas. ¡Sé el primero!
+                    </p>
+                  </div>
+                )}
+                {otras.length === 0 && miResena && (
+                  <p className="text-sm text-[#3B4F38]/50">No hay otras reseñas aún.</p>
+                )}
+                {otras.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    {otras.map((r) => (
+                      <div key={r.idResena} className="bg-[#F4F8F3] rounded-xl p-4 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Estrellas modo="lectura" valor={r.calificacion} size="sm" />
+                          <span className="text-xs text-[#3B4F38]/50">{ocultarEmail(r.emailCliente)}</span>
+                        </div>
+                        <p className="text-sm text-[#061F03]">{r.comentario}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

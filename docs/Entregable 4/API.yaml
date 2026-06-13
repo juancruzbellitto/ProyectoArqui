@@ -449,7 +449,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /reservas/{idReserva}/equipamiento:                   # Endpoints para listar, solicitar o quitar equipamiento solicitado en una reserva
-    get:                                                # Endpoint para listar el equipamiento solicitado en una reserva
+    get:                                                #✅ Endpoint para listar el equipamiento solicitado en una reserva
       summary: Listar equipamiento solicitado en una reserva
       tags: [Reservas]
       security:
@@ -502,7 +502,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    post:                                               # Endpoint para solicitar equipamiento en una reserva
+    post:                                               #✅ Endpoint para solicitar equipamiento en una reserva
       summary: Solicitar equipamiento en una reserva
       tags: [Reservas]
       security:
@@ -567,7 +567,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /reservas/{idReserva}/equipamiento/{idEquipamiento}:  # Endpoint para quitar equipamiento solicitado en una reserva 
+  /reservas/{idReserva}/equipamiento/{idEquipamiento}:  #✅ Endpoint para quitar equipamiento solicitado en una reserva 
     delete:
       summary: Quitar equipamiento de una reserva
       tags: [Reservas]
@@ -907,7 +907,7 @@ paths:
                 $ref: '#/components/schemas/Error'
               
   /complejos/{idComplejo}/equipamiento:                 # Endpoints para listar, agregar o eliminar equipamiento de un complejo
-    get:                                                # Endpoint para listar el equipamiento de un complejo
+    get:                                                #✅ Endpoint para listar el equipamiento de un complejo
       summary: Listar equipamiento de un complejo
       tags: [Complejos]
       security:
@@ -963,7 +963,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    post:                                               # Endpoint para agregar equipamiento a un complejo
+    post:                                               #✅ Endpoint para agregar equipamiento a un complejo
       summary: Agregar equipamiento al complejo
       tags: [Complejos]
       security:
@@ -1026,7 +1026,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /equipamiento/{idEquipamiento}:                       # Endpoints para consultar, modificar o eliminar un equipamiento específico
-    patch:                                              # Endpoint para modificar datos de un equipamiento específico
+    patch:                                              #✅ Endpoint para modificar datos de un equipamiento específico
       summary: Modificar equipamiento
       tags: [Complejos]
       security:
@@ -1086,7 +1086,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    delete:                                             # Endpoint para eliminar un equipamiento específico
+    delete:                                             #✅ Endpoint para eliminar un equipamiento específico
       summary: Eliminar equipamiento
       tags: [Complejos]
       security:
@@ -1383,7 +1383,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /canchas/{idCancha}/resenas:                          # Endpoints para listar o crear reseñas en una cancha específica
-    get:                                                # Endpoint para listar reseñas de una cancha
+    get:                                                #✅ Endpoint para listar reseñas de una cancha
       summary: Listar reseñas de una cancha
       tags: [Canchas]
       parameters:
@@ -1409,7 +1409,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    post:                                               # Endpoint para crear una nueva reseña en una cancha específica
+    post:                                               #✅ Endpoint para crear una nueva reseña en una cancha específica
       summary: Crear una reseña en una cancha
       tags: [Canchas]
       security:
@@ -1468,7 +1468,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /resenas/{idResena}:                                  # Endpoint para eliminar una reseña específica
+  /resenas/{idResena}:                                  #✅ Endpoint para eliminar una reseña específica
     delete:
       summary: Eliminar una reseña
       tags: [Canchas]

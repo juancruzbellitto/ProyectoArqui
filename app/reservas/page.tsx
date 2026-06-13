@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import Navbar from '@/src/components/Navbar'
 import Footer from '@/src/components/Footer'
-import { Calendar, Clock, ChevronLeft, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Calendar, Clock, ChevronLeft, AlertTriangle, CheckCircle2, Package, Plus, Minus, X } from 'lucide-react'
 
 type Reserva = {
   idReserva: number
@@ -59,6 +59,7 @@ export default function PaginaMisReservas() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
   const [errorCancelar, setErrorCancelar] = useState<string | null>(null)
+  const [reservaEquipModal, setReservaEquipModal] = useState<Reserva | null>(null)
 
   const cacheCancha = useRef<Map<number, InfoCancha>>(new Map())
 
@@ -220,6 +221,7 @@ export default function PaginaMisReservas() {
                     cancha={infoCancha.get(r.idCancha)}
                     onCancelar={cancelarReserva}
                     cancelando={cancelando === r.idReserva}
+                    onEquipamiento={setReservaEquipModal}
                   />
                 ))}
               </div>
@@ -245,6 +247,15 @@ export default function PaginaMisReservas() {
 
         </div>
       </main>
+
+      {reservaEquipModal && infoCancha.get(reservaEquipModal.idCancha) && (
+        <ModalEquipamiento
+          reserva={reservaEquipModal}
+          cancha={infoCancha.get(reservaEquipModal.idCancha)!}
+          onCerrar={() => setReservaEquipModal(null)}
+        />
+      )}
+
       <Footer />
     </>
   )
@@ -255,11 +266,13 @@ function TarjetaReserva({
   cancha,
   onCancelar,
   cancelando,
+  onEquipamiento,
 }: {
   reserva: Reserva
   cancha: InfoCancha | undefined
   onCancelar: (id: number) => void
   cancelando: boolean
+  onEquipamiento?: (r: Reserva) => void
 }) {
   const cancelable = esCancelable(reserva.estado, reserva.fecha, reserva.hora)
   const [confirmando, setConfirmando] = useState(false)
@@ -303,6 +316,16 @@ function TarjetaReserva({
         </span>
       )}
 
+      {onEquipamiento && cancelable && !confirmando && (
+        <button
+          onClick={() => onEquipamiento(reserva)}
+          className="shrink-0 flex items-center gap-1.5 text-sm text-[#3B4F38] border border-[#ACC2AB]/50 rounded-xl px-3 py-2 hover:bg-[#F4F8F3] transition-colors"
+        >
+          <Package className="w-4 h-4 text-[#7FB584]" />
+          Equipamiento
+        </button>
+      )}
+
       {cancelable && !confirmando && (
         <button
           onClick={() => setConfirmando(true)}
@@ -330,6 +353,217 @@ function TarjetaReserva({
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+type ItemReserva = { idEquipamiento: number; nombre: string; precio: number; cantidad: number; stockDisponible: number }
+type ItemCatalogo = { idEquipamiento: number; nombre: string; precio: number; stock: number; stockDisponible: number; idComplejo: number }
+
+function ModalEquipamiento({
+  reserva,
+  cancha,
+  onCerrar,
+}: {
+  reserva: Reserva
+  cancha: InfoCancha
+  onCerrar: () => void
+}) {
+  const [itemsReserva, setItemsReserva] = useState<ItemReserva[]>([])
+  const [catalogo, setCatalogo] = useState<ItemCatalogo[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [cantidades, setCantidades] = useState<Record<number, number>>({})
+  const [operando, setOperando] = useState<number | null>(null)
+
+  const cargar = useCallback(async () => {
+    setCargando(true)
+    setError(null)
+    try {
+      const [resItems, resCat] = await Promise.all([
+        fetch(`/api/v1/reservas/${reserva.idReserva}/equipamiento`),
+        fetch(`/api/v1/complejos/${cancha.idComplejo}/equipamiento`),
+      ])
+      if (!resItems.ok) throw new Error('Error al cargar equipamiento de la reserva')
+      if (!resCat.ok) throw new Error('Error al cargar el catálogo del complejo')
+      const [items, cat] = await Promise.all([resItems.json(), resCat.json()])
+      setItemsReserva(items as ItemReserva[])
+      setCatalogo(cat as ItemCatalogo[])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setCargando(false)
+    }
+  }, [reserva.idReserva, cancha.idComplejo])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargar()
+  }, [cargar])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onCerrar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCerrar])
+
+  async function agregar(idEquipamiento: number) {
+    const cantidad = cantidades[idEquipamiento] ?? 1
+    if (cantidad <= 0) return
+    setOperando(idEquipamiento)
+    setError(null)
+    try {
+      const res = await fetch(`/api/v1/reservas/${reserva.idReserva}/equipamiento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idEquipamiento, cantidad }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: { message?: string } })?.error?.message ?? 'Error al agregar')
+      }
+      await cargar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setOperando(null)
+    }
+  }
+
+  async function quitar(idEquipamiento: number) {
+    setOperando(idEquipamiento)
+    setError(null)
+    try {
+      const res = await fetch(
+        `/api/v1/reservas/${reserva.idReserva}/equipamiento/${idEquipamiento}`,
+        { method: 'DELETE' }
+      )
+      if (res.status !== 204) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: { message?: string } })?.error?.message ?? 'Error al quitar')
+      }
+      await cargar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
+    } finally {
+      setOperando(null)
+    }
+  }
+
+  const idsEnReserva = new Set(itemsReserva.map((i) => i.idEquipamiento))
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onCerrar() }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-[#ACC2AB]/20">
+          <div>
+            <h2 className="font-bold text-[#061F03]">Equipamiento</h2>
+            <p className="text-xs text-[#3B4F38]/60 mt-0.5">Reserva #{reserva.idReserva}</p>
+          </div>
+          <button onClick={onCerrar} className="text-[#3B4F38]/60 hover:text-[#061F03] transition-colors p-1">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 flex flex-col gap-6">
+          {cargando && (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin w-7 h-7 border-4 border-[#ACC2AB] border-t-[#3B4F38] rounded-full" />
+            </div>
+          )}
+
+          {!cargando && error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm flex items-center gap-3">
+              <span>{error}</span>
+              <button onClick={cargar} className="underline shrink-0">Reintentar</button>
+            </div>
+          )}
+
+          {!cargando && !error && (
+            <>
+              {/* Items ya solicitados */}
+              <div>
+                <h3 className="text-xs font-semibold text-[#3B4F38]/70 uppercase tracking-wide mb-3">
+                  Solicitado
+                </h3>
+                {itemsReserva.length === 0 ? (
+                  <p className="text-sm text-[#3B4F38]/50">Ningún artículo solicitado aún.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {itemsReserva.map((item) => (
+                      <div key={item.idEquipamiento} className="flex items-center justify-between gap-3 bg-[#F4F8F3] rounded-xl px-4 py-2.5">
+                        <div>
+                          <p className="text-sm font-medium text-[#061F03]">{item.nombre}</p>
+                          <p className="text-xs text-[#3B4F38]/60">x{item.cantidad} · ${item.precio.toFixed(2)} c/u</p>
+                        </div>
+                        <button
+                          onClick={() => quitar(item.idEquipamiento)}
+                          disabled={operando === item.idEquipamiento}
+                          className="shrink-0 flex items-center gap-1 text-xs text-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          <Minus className="w-3 h-3" />
+                          Quitar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Catálogo */}
+              <div>
+                <h3 className="text-xs font-semibold text-[#3B4F38]/70 uppercase tracking-wide mb-3">
+                  Catálogo del complejo
+                </h3>
+                {catalogo.length === 0 ? (
+                  <p className="text-sm text-[#3B4F38]/50">Este complejo no tiene equipamiento disponible.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {catalogo.map((item) => {
+                      const yaAgregado = idsEnReserva.has(item.idEquipamiento)
+                      const sinStock = item.stockDisponible === 0 && !yaAgregado
+                      const cantidad = cantidades[item.idEquipamiento] ?? 1
+                      return (
+                        <div key={item.idEquipamiento} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 border ${sinStock ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-[#ACC2AB]/30 bg-white'}`}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#061F03] truncate">{item.nombre}</p>
+                            <p className="text-xs text-[#3B4F38]/60">
+                              ${item.precio.toFixed(2)} · Disp: {item.stockDisponible}
+                              {yaAgregado && <span className="ml-1 text-[#7FB584]">· ya solicitado</span>}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <input
+                              type="number"
+                              min={1}
+                              max={item.stockDisponible}
+                              value={cantidad}
+                              disabled={sinStock}
+                              onChange={(e) => setCantidades((prev) => ({ ...prev, [item.idEquipamiento]: Math.max(1, parseInt(e.target.value) || 1) }))}
+                              className="w-14 px-2 py-1.5 rounded-lg border border-[#ACC2AB]/50 text-sm text-center text-[#061F03] focus:outline-none focus:ring-2 focus:ring-[#ACC2AB] disabled:bg-gray-100"
+                            />
+                            <button
+                              onClick={() => agregar(item.idEquipamiento)}
+                              disabled={sinStock || operando === item.idEquipamiento}
+                              className="flex items-center gap-1 text-xs text-[#3B4F38] border border-[#ACC2AB]/50 rounded-lg px-2.5 py-1.5 hover:bg-[#F4F8F3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-3 h-3" />
+                              {yaAgregado ? 'Sumar' : 'Agregar'}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

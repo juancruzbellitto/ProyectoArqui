@@ -162,6 +162,8 @@ model Resenia {
   // email_cliente debe tener rol = 'cliente'
   cliente Usuario @relation(fields: [email_cliente], references: [email])
   cancha  Cancha  @relation(fields: [id_cancha], references: [id_cancha])
+
+  @@unique([email_cliente, id_cancha])
 }
 
 model Inasistencia {

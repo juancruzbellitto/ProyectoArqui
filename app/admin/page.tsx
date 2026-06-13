@@ -1,9 +1,8 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/server';
 import Navbar from '@/src/components/Navbar';
 import Footer from '@/src/components/Footer';
 
 export default async function PaginaDashboard() {
-  const { userId } = await auth();
   const usuario = await currentUser();
 
   return (
@@ -22,8 +21,6 @@ export default async function PaginaDashboard() {
             <TarjetaDashboard titulo="Inventario" descripcion="Controlá el equipamiento disponible" href="/admin/complejos" />
           </div>
 
-          {/* Placeholder — reemplazar con query a Prisma validando rol */}
-          <p className="mt-8 text-xs text-[#7FB584]">clerk_user_id: {userId}</p>
         </div>
       </main>
       <Footer />

@@ -282,6 +282,18 @@ function TarjetaComplejo({
         >
           Ver canchas
         </Link>
+        <Link
+          href={`/admin/complejos/${complejo.id_complejo}/equipamiento`}
+          className="flex-1 text-center text-sm font-medium bg-[#D7E6D3] text-[#3B4F38] px-3 py-2 rounded-lg hover:bg-[#ACC2AB]/50 transition-colors duration-200"
+        >
+          Inventario
+        </Link>
+        <Link
+          href={`/admin/complejos/${complejo.id_complejo}/resenas`}
+          className="flex-1 text-center text-sm font-medium bg-[#D7E6D3] text-[#3B4F38] px-3 py-2 rounded-lg hover:bg-[#ACC2AB]/50 transition-colors duration-200"
+        >
+          Reseñas
+        </Link>
         <button
           onClick={onEditar}
           className="flex items-center gap-1.5 text-sm font-medium bg-[#ACC2AB]/30 text-[#3B4F38] px-3 py-2 rounded-lg hover:bg-[#ACC2AB]/50 transition-colors duration-200"
