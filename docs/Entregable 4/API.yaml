@@ -14,7 +14,10 @@ paths:
     post:
       summary: Sincronizar un nuevo usuario (Webhook de Clerk o registro inicial)
       tags: [Usuarios]
+      security: []
       description: Endpoint utilizado para registrar el perfil local del usuario una vez se autentica con Clerk.
+                   Al operar como webhook, la autenticación no utiliza Bearer Token, sino que verifica mediante la firma
+                   de la petición.
       requestBody:
         required: true
         content:
@@ -57,7 +60,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
 
   /usuarios/{email}:                                    # Endpoints para consultar o modificar datos del perfil de un usuario específico
     get:                                                # Endpoint para consultar datos del perfil de un usuario específico
@@ -612,6 +615,9 @@ paths:
     post:
       summary: Registrar inasistencia de un cliente en una reserva
       tags: [Reservas]
+      description: >
+        Registra la inasistencia. No requiere body ya que los datos de infracción se infieren y extraen directamente
+        de la reserva identificada por el idReserva en el path.
       security:
         - bearerAuth: []
       parameters:
@@ -714,6 +720,13 @@ paths:
       summary: Listar complejos
       tags: [Complejos]
       parameters:
+        - in: query
+          name: emailAdministrador
+          required: false
+          description: Filtrar complejos por el email del administrador
+          schema:
+            type: string
+            format: email
         - in: query
           name: page
           schema:
@@ -1255,6 +1268,9 @@ paths:
     get:                                                #✅ Endpoint para listar canchas de un complejo con filtros opcionales por deporte o estado operativo
       summary: Listar canchas de un complejo
       tags: [Canchas]
+      description:
+        Endpoint público. El atributo 'estadoOperativo' es visible para permitir a los usuarios finales
+        conocer la disponibilidad en tiempo real.
       parameters:
         - in: path
           name: idComplejo
@@ -1762,6 +1778,11 @@ paths:
     post:
       summary: Notificación de pagos
       tags: [Pagos]
+      description: >
+        Webhook para recibir notificaciones asincrónicas de Mercado Pago.
+        La autenticación se realiza verificando la firma digital en el header 'x-signature'
+        utilizando la clave secreta compartida
+      security: []
       requestBody:
         required: true
         content:
@@ -2056,4 +2077,5 @@ components:
           example: 25420.30
         status:
           type: string
+          enum: [ACEPTADO, RECHAZADO, PENDIENTE]
           example: "ACEPTADO"
